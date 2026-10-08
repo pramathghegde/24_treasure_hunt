@@ -1,6 +1,7 @@
 import pygame
 import random
 
+
 TILE = 40
 COLS, ROWS = 20, 15
 WALL, FLOOR, CHEST, KEY, TRAP = 0, 1, 2, 3, 4
@@ -321,6 +322,103 @@ class GameEngine:
                 self.player.rect.topleft = self.start_pos
                 self.status = "Trap! Back to start!"
 
+    def _draw_minimap(self):
+        # Keep the mini-map compact enough to remain a small overlay.
+        map_tile = 6
+        map_width = COLS * map_tile
+        map_height = ROWS * map_tile
+
+        margin = 10
+        border = 4
+
+        map_x = WIDTH - map_width - margin - border * 2
+        map_y = margin + border
+
+        background = pygame.Rect(
+            map_x - border,
+            map_y - border,
+            map_width + border * 2,
+            map_height + border * 2
+        )
+
+        pygame.draw.rect(
+            self.screen,
+            (15, 15, 25),
+            background,
+            border_radius=4
+        )
+
+        for r in range(ROWS):
+            for c in range(COLS):
+                cell = self.grid[r][c]
+
+                if cell == WALL:
+                    color = (35, 30, 45)
+                else:
+                    color = (190, 180, 160)
+
+                mini_rect = pygame.Rect(
+                    map_x + c * map_tile,
+                    map_y + r * map_tile,
+                    map_tile,
+                    map_tile
+                )
+
+                pygame.draw.rect(
+                    self.screen,
+                    color,
+                    mini_rect
+                )
+
+                if cell == CHEST:
+                    pygame.draw.rect(
+                        self.screen,
+                        (220, 160, 30),
+                        mini_rect.inflate(-2, -2)
+                    )
+                elif cell == KEY:
+                    pygame.draw.rect(
+                        self.screen,
+                        (240, 220, 50),
+                        mini_rect.inflate(-2, -2)
+                    )
+                elif cell == TRAP:
+                    pygame.draw.rect(
+                        self.screen,
+                        (150, 40, 40),
+                        mini_rect.inflate(-2, -2)
+                    )
+
+        player_col = self.player.rect.centerx // TILE
+        player_row = self.player.rect.centery // TILE
+
+        if 0 <= player_row < ROWS and 0 <= player_col < COLS:
+            player_x = (
+                map_x
+                + player_col * map_tile
+                + map_tile // 2
+            )
+            player_y = (
+                map_y
+                + player_row * map_tile
+                + map_tile // 2
+            )
+
+            pygame.draw.circle(
+                self.screen,
+                (50, 130, 255),
+                (player_x, player_y),
+                3
+            )
+
+        pygame.draw.rect(
+            self.screen,
+            (220, 220, 220),
+            background,
+            1,
+            border_radius=4
+        )
+
     def draw(self):
         self.screen.fill((30, 25, 40))
 
@@ -364,6 +462,9 @@ class GameEngine:
             self.guard.draw(self.screen)
 
         self.player.draw(self.screen)
+
+        # Task 3: draw the mini-map from the current dungeon grid.
+        self._draw_minimap()
 
         hud = pygame.Rect(0, ROWS*TILE, WIDTH, 50)
         pygame.draw.rect(self.screen, (20, 20, 35), hud)
