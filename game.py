@@ -3,7 +3,7 @@ import random
 
 TILE = 40
 COLS, ROWS = 20, 15
-WALL, FLOOR, CHEST, KEY = 0, 1, 2, 3
+WALL, FLOOR, CHEST, KEY, TRAP = 0, 1, 2, 3, 4
 SPEED = 3
 
 def generate_world():
@@ -39,7 +39,20 @@ def generate_world():
         grid[cr.centery][cr.centerx] = CHEST
         grid[ck.centery][ck.centerx] = KEY
 
-    start = rooms[0] if rooms else None
+    if rooms:
+        start = rooms[0]
+        trap_cells = []
+
+        for r in range(ROWS):
+            for c in range(COLS):
+                if grid[r][c] == FLOOR and not start.collidepoint(c, r):
+                    trap_cells.append((r, c))
+
+        for r, c in random.sample(trap_cells, min(8, len(trap_cells))):
+            grid[r][c] = TRAP
+    else:
+        start = None
+
     return grid, start
 
 COLORS = {
@@ -47,6 +60,7 @@ COLORS = {
     FLOOR: (200,190,170),
     CHEST: (200,160,30),
     KEY: (220,220,60),
+    TRAP: (180,50,50),
 }
 
 class Player:
@@ -100,6 +114,7 @@ class GameEngine:
         else:
             sx, sy = TILE+6, TILE+6
         self.player = Player(sx, sy)
+        self.start_pos = (sx, sy)
         self.won = False
         self.status = "Find the KEY, then the CHEST!"
 
@@ -124,6 +139,9 @@ class GameEngine:
             elif cell == CHEST and self.player.has_key:
                 self.won = True
                 self.status = "Treasure found!"
+            elif cell == TRAP:
+                self.player.rect.topleft = self.start_pos
+                self.status = "Trap! Back to start!"
 
     def draw(self):
         self.screen.fill((30,25,40))
@@ -136,6 +154,21 @@ class GameEngine:
                     pygame.draw.circle(self.screen, (255,240,60),(c*TILE+TILE//2, r*TILE+TILE//2),10)
                 elif cell == CHEST:
                     pygame.draw.rect(self.screen,(180,120,20),rect.inflate(-12,-12),border_radius=4)
+                elif cell == TRAP:
+                    pygame.draw.line(
+                        self.screen,
+                        (80,20,20),
+                        (c*TILE+8, r*TILE+8),
+                        (c*TILE+TILE-8, r*TILE+TILE-8),
+                        4
+                    )
+                    pygame.draw.line(
+                        self.screen,
+                        (80,20,20),
+                        (c*TILE+TILE-8, r*TILE+8),
+                        (c*TILE+8, r*TILE+TILE-8),
+                        4
+                    )
         self.player.draw(self.screen)
         hud = pygame.Rect(0,ROWS*TILE,WIDTH,50)
         pygame.draw.rect(self.screen,(20,20,35),hud)
