@@ -83,11 +83,13 @@ class Player:
             dy = -SPEED
         if keys[pygame.K_DOWN] or keys[pygame.K_s]:
             dy = SPEED
+
         self._try_move(dx, 0, grid, rows, cols)
         self._try_move(0, dy, grid, rows, cols)
 
     def _try_move(self, dx, dy, grid, rows, cols):
         new = self.rect.move(dx, dy)
+
         for px, py in [
             (new.left, new.top),
             (new.right-1, new.top),
@@ -95,12 +97,15 @@ class Player:
             (new.right-1, new.bottom-1)
         ]:
             c, r = px // TILE, py // TILE
+
             if not (0 <= r < rows and 0 <= c < cols) or grid[r][c] == WALL:
                 return
+
         self.rect = new
 
     def draw(self, screen):
         pygame.draw.ellipse(screen, self.color, self.rect)
+
         if self.has_key:
             pygame.draw.circle(
                 screen,
@@ -154,6 +159,7 @@ class Guard:
             (self.rect.centerx - 7, self.rect.centery - 3),
             4
         )
+
         pygame.draw.circle(
             screen,
             (240, 220, 200),
@@ -193,6 +199,7 @@ class GameEngine:
                 if self.grid[r][c] == CHEST:
                     chest_cell = (r, c)
                     break
+
             if chest_cell:
                 break
 
@@ -204,23 +211,35 @@ class GameEngine:
         # Find horizontal floor segments.
         for r in range(ROWS):
             c = 0
+
             while c < COLS:
                 if self.grid[r][c] != FLOOR:
                     c += 1
                     continue
 
                 start_c = c
+
                 while c < COLS and self.grid[r][c] == FLOOR:
                     c += 1
 
                 end_c = c - 1
 
                 if end_c - start_c + 1 >= 2:
-                    point_a = (start_c * TILE + 6, r * TILE + 6)
-                    point_b = (end_c * TILE + 6, r * TILE + 6)
+                    point_a = (
+                        start_c * TILE + 6,
+                        r * TILE + 6
+                    )
+
+                    point_b = (
+                        end_c * TILE + 6,
+                        r * TILE + 6
+                    )
 
                     mid_c = (start_c + end_c) / 2
-                    distance = abs(mid_c - chest_cell[1]) + abs(r - chest_cell[0])
+                    distance = (
+                        abs(mid_c - chest_cell[1])
+                        + abs(r - chest_cell[0])
+                    )
 
                     candidates.append(
                         (distance, point_a, point_b)
@@ -229,23 +248,35 @@ class GameEngine:
         # Find vertical floor segments.
         for c in range(COLS):
             r = 0
+
             while r < ROWS:
                 if self.grid[r][c] != FLOOR:
                     r += 1
                     continue
 
                 start_r = r
+
                 while r < ROWS and self.grid[r][c] == FLOOR:
                     r += 1
 
                 end_r = r - 1
 
                 if end_r - start_r + 1 >= 2:
-                    point_a = (c * TILE + 6, start_r * TILE + 6)
-                    point_b = (c * TILE + 6, end_r * TILE + 6)
+                    point_a = (
+                        c * TILE + 6,
+                        start_r * TILE + 6
+                    )
+
+                    point_b = (
+                        c * TILE + 6,
+                        end_r * TILE + 6
+                    )
 
                     mid_r = (start_r + end_r) / 2
-                    distance = abs(c - chest_cell[1]) + abs(mid_r - chest_cell[0])
+                    distance = (
+                        abs(c - chest_cell[1])
+                        + abs(mid_r - chest_cell[0])
+                    )
 
                     candidates.append(
                         (distance, point_a, point_b)
@@ -260,6 +291,7 @@ class GameEngine:
 
     def reset(self):
         self.grid, start = generate_world()
+
         if start:
             sx = start.x * TILE + 6
             sy = start.y * TILE + 6
@@ -284,8 +316,10 @@ class GameEngine:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return False
+
             if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
                 self.reset()
+
         return True
 
     def update(self):
@@ -296,7 +330,12 @@ class GameEngine:
             self.guard.update()
 
         keys = pygame.key.get_pressed()
-        self.player.move(keys, self.grid, ROWS, COLS)
+        self.player.move(
+            keys,
+            self.grid,
+            ROWS,
+            COLS
+        )
 
         if self.guard and self.player.rect.colliderect(self.guard.rect):
             self.player.rect.topleft = self.start_pos
@@ -376,12 +415,14 @@ class GameEngine:
                         (220, 160, 30),
                         mini_rect.inflate(-2, -2)
                     )
+
                 elif cell == KEY:
                     pygame.draw.rect(
                         self.screen,
                         (240, 220, 50),
                         mini_rect.inflate(-2, -2)
                     )
+
                 elif cell == TRAP:
                     pygame.draw.rect(
                         self.screen,
@@ -398,6 +439,7 @@ class GameEngine:
                 + player_col * map_tile
                 + map_tile // 2
             )
+
             player_y = (
                 map_y
                 + player_row * map_tile
@@ -419,22 +461,132 @@ class GameEngine:
             border_radius=4
         )
 
+    def _draw_inventory(self):
+        """
+        Draw the Task 4 inventory UI in the bottom HUD.
+
+        The inventory state comes directly from self.player.has_key.
+        """
+
+        # Inventory area on the right side of the existing HUD.
+        label_x = WIDTH - 145
+        label_y = ROWS * TILE + 8
+
+        slot_size = 32
+        slot_x = WIDTH - 48
+        slot_y = ROWS * TILE + 9
+
+        # Inventory label.
+        inventory_text = self.font.render(
+            "INV",
+            True,
+            (200, 200, 200)
+        )
+
+        self.screen.blit(
+            inventory_text,
+            (label_x, label_y + 3)
+        )
+
+        # Empty inventory slot.
+        slot = pygame.Rect(
+            slot_x,
+            slot_y,
+            slot_size,
+            slot_size
+        )
+
+        pygame.draw.rect(
+            self.screen,
+            (35, 35, 50),
+            slot,
+            border_radius=4
+        )
+
+        pygame.draw.rect(
+            self.screen,
+            (150, 150, 160),
+            slot,
+            2,
+            border_radius=4
+        )
+
+        # Display the key only when the player has collected it.
+        if self.player.has_key:
+            # Key shaft.
+            pygame.draw.rect(
+                self.screen,
+                (240, 210, 50),
+                pygame.Rect(
+                    slot.centerx - 2,
+                    slot.y + 8,
+                    12,
+                    5
+                )
+            )
+
+            # Key ring.
+            pygame.draw.circle(
+                self.screen,
+                (240, 210, 50),
+                (slot.centerx - 7, slot.centery - 2),
+                7,
+                3
+            )
+
+            # Key teeth.
+            pygame.draw.rect(
+                self.screen,
+                (240, 210, 50),
+                pygame.Rect(
+                    slot.centerx + 7,
+                    slot.centery - 2,
+                    4,
+                    8
+                )
+            )
+
+            pygame.draw.rect(
+                self.screen,
+                (240, 210, 50),
+                pygame.Rect(
+                    slot.centerx + 3,
+                    slot.centery + 2,
+                    4,
+                    5
+                )
+            )
+
     def draw(self):
         self.screen.fill((30, 25, 40))
 
         for r in range(ROWS):
             for c in range(COLS):
                 cell = self.grid[r][c]
-                rect = pygame.Rect(c*TILE, r*TILE, TILE, TILE)
-                pygame.draw.rect(self.screen, COLORS[cell], rect)
+                rect = pygame.Rect(
+                    c * TILE,
+                    r * TILE,
+                    TILE,
+                    TILE
+                )
+
+                pygame.draw.rect(
+                    self.screen,
+                    COLORS[cell],
+                    rect
+                )
 
                 if cell == KEY:
                     pygame.draw.circle(
                         self.screen,
                         (255, 240, 60),
-                        (c*TILE + TILE//2, r*TILE + TILE//2),
+                        (
+                            c * TILE + TILE // 2,
+                            r * TILE + TILE // 2
+                        ),
                         10
                     )
+
                 elif cell == CHEST:
                     pygame.draw.rect(
                         self.screen,
@@ -442,19 +594,33 @@ class GameEngine:
                         rect.inflate(-12, -12),
                         border_radius=4
                     )
+
                 elif cell == TRAP:
                     pygame.draw.line(
                         self.screen,
                         (80, 20, 20),
-                        (c*TILE+8, r*TILE+8),
-                        (c*TILE+TILE-8, r*TILE+TILE-8),
+                        (
+                            c * TILE + 8,
+                            r * TILE + 8
+                        ),
+                        (
+                            c * TILE + TILE - 8,
+                            r * TILE + TILE - 8
+                        ),
                         4
                     )
+
                     pygame.draw.line(
                         self.screen,
                         (80, 20, 20),
-                        (c*TILE+TILE-8, r*TILE+8),
-                        (c*TILE+8, r*TILE+TILE-8),
+                        (
+                            c * TILE + TILE - 8,
+                            r * TILE + 8
+                        ),
+                        (
+                            c * TILE + 8,
+                            r * TILE + TILE - 8
+                        ),
                         4
                     )
 
@@ -466,29 +632,53 @@ class GameEngine:
         # Task 3: draw the mini-map from the current dungeon grid.
         self._draw_minimap()
 
-        hud = pygame.Rect(0, ROWS*TILE, WIDTH, 50)
-        pygame.draw.rect(self.screen, (20, 20, 35), hud)
+        # Existing HUD.
+        hud = pygame.Rect(
+            0,
+            ROWS * TILE,
+            WIDTH,
+            50
+        )
+
+        pygame.draw.rect(
+            self.screen,
+            (20, 20, 35),
+            hud
+        )
 
         st = self.font.render(
             self.status + "  |  R=Restart",
             True,
             (200, 200, 200)
         )
-        self.screen.blit(st, (8, ROWS*TILE+13))
+
+        self.screen.blit(
+            st,
+            (8, ROWS * TILE + 13)
+        )
+
+        # Task 4: draw the inventory inside the HUD.
+        self._draw_inventory()
 
         if self.won:
             ov = pygame.Surface(
-                (WIDTH, ROWS*TILE),
+                (WIDTH, ROWS * TILE),
                 pygame.SRCALPHA
             )
+
             ov.fill((0, 0, 0, 140))
-            self.screen.blit(ov, (0, 0))
+
+            self.screen.blit(
+                ov,
+                (0, 0)
+            )
 
             msg = self.big_font.render(
                 "TREASURE FOUND!",
                 True,
                 (220, 180, 30)
             )
+
             sub = self.font.render(
                 "Press R to Play Again",
                 True,
@@ -498,15 +688,16 @@ class GameEngine:
             self.screen.blit(
                 msg,
                 (
-                    WIDTH//2-msg.get_width()//2,
-                    ROWS*TILE//2-30
+                    WIDTH // 2 - msg.get_width() // 2,
+                    ROWS * TILE // 2 - 30
                 )
             )
+
             self.screen.blit(
                 sub,
                 (
-                    WIDTH//2-sub.get_width()//2,
-                    ROWS*TILE//2+20
+                    WIDTH // 2 - sub.get_width() // 2,
+                    ROWS * TILE // 2 + 20
                 )
             )
 
@@ -514,6 +705,7 @@ class GameEngine:
 
     def run(self):
         running = True
+
         while running:
             running = self.handle_events()
             self.update()
